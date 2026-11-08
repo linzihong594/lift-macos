@@ -1,0 +1,34 @@
+name: 问题反馈 / Bug report
+description: 报告可以复现的问题 / Report a reproducible problem
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: 请勿提交含用户名、私人文件路径或其他敏感信息的完整日志。/ Please redact private paths and unrelated information from logs.
+  - type: input
+    id: environment
+    attributes:
+      label: 环境 / Environment
+      description: macOS 版本、Mac 架构、轻退版本 / macOS version, architecture and Lift version
+      placeholder: macOS … / Apple Silicon or Intel / Lift …
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      description: 包括 DMG 布局、安装目录和是否改名 / Include the DMG layout, destination and any renaming
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 预期与实际结果 / Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志 / Relevant logs
+      description: 可选，仅粘贴已去除个人信息的相关片段 / Optional, relevant redacted excerpts only
+      render: text

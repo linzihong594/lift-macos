@@ -1,0 +1,15 @@
+{
+  "description": "Historical local measurement: 64 MiB large file plus 2000 small files, three full verifications; values in bytes and seconds.",
+  "before": {
+    "after": 438059704,
+    "before": 1737064,
+    "peak": 438059704,
+    "seconds": 0.35890495777130127
+  },
+  "after": {
+    "after": 7831984,
+    "before": 1769856,
+    "peak": 7831984,
+    "seconds": 0.32637691497802734
+  }
+}

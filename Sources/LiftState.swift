@@ -2,9 +2,9 @@ import Foundation
 import Darwin
 
 enum LiftPaths {
-    static let label = "local.suis.dmg-auto-eject"
+    static let label = "local.suis.lift.background"
     static var support: URL { FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/DMG Auto Eject") }
-    static var launchAgent: URL { FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents/" + label + ".plist") }
+    static let agentPlistName = label + ".plist"
     static var service: String { "gui/\(getuid())/\(label)" }
 }
 

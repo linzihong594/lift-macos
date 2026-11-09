@@ -132,7 +132,7 @@ python3 manage.py uninstall
 
 ## 性能
 
-后台与管理窗口是独立进程。窗口中的「后台内存」只统计 `LiftAgent`，不包含界面进程或系统文件缓存。
+后台与管理窗口是独立进程。窗口中的「后台内存」只统计后台进程「轻退」，不包含界面进程或系统文件缓存。
 
 比较文件时使用两个 128 KB 缓冲区，任务完成后释放目录快照与临时对象，并请求分配器归还空闲页面。图标缓存只保留当前四条记录。
 
@@ -162,17 +162,17 @@ python3 Tests/performance.py
 | 项目 | 位置 |
 | --- | --- |
 | 应用 | `/Applications/轻退.app`，或 `~/Applications/轻退.app` |
-| 后台程序 | 应用包内 `Contents/Library/LaunchServices/LiftAgent` |
-| 登录服务 | `~/Library/LaunchAgents/local.suis.dmg-auto-eject.plist` |
+| 后台程序 | 应用包内 `Contents/Library/LaunchServices/轻退` |
+| 登录服务 | 应用包内 `Contents/Library/LaunchAgents/local.suis.lift.background.plist` |
 | 状态、记录、缓存及日志 | `~/Library/Application Support/DMG Auto Eject/` |
 
-旧的支持目录和服务标识沿用早期名称，用于兼容升级。`agent.log` 轮转保留当前与上一份文件，每份约 1 MiB。仓库只收录源码、测试与项目资源，不收录用户运行数据。
+支持目录沿用早期名称以保留历史记录。登录服务通过 Apple 的 `SMAppService` 登记，系统「后台 App 活动」统一归入「轻退」；升级会移除旧的外置登录服务。`agent.log` 轮转保留当前与上一份文件，每份约 1 MiB。仓库只收录源码、测试与项目资源，不收录用户运行数据。
 
 ## 常见问题
 
-### LiftAgent 是什么？
+### 后台进程叫什么？
 
-`LiftAgent` 是轻退的后台可执行文件，由本项目 Swift 源码编译生成，负责监测安装盘、核对复制结果及弹出磁盘。`Lift` 是管理窗口进程。关闭管理窗口后仍看到 `LiftAgent` 属于正常运行；关闭「自动弹出」可停止它。
+从 1.3.0 起，活动监视器中的后台进程和系统后台项目统一显示为「轻退」。旧版后台名 `LiftAgent` 已停用。管理窗口使用独立的「轻退设置」可执行文件，关闭窗口后退出，日常只保留轻量后台。在应用中关闭「自动弹出」即可同时暂停后台和登录启动。
 
 ### 为什么复制完没有弹出？
 

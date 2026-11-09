@@ -115,7 +115,7 @@ This is conservative detection for common drag-to-install apps, not a universal 
 
 ## Performance
 
-The UI and `LiftAgent` run as separate processes. The window's memory figure covers only the background agent, excluding the UI and system file cache.
+The UI and the background agent named `轻退` (Lift) run as separate processes. The window's memory figure covers only the background agent, excluding the UI and system file cache.
 
 File comparison uses two 128 KB buffers. Completed work releases directory snapshots and temporary objects and requests allocator pressure relief. Icon caching is limited to four recent entries.
 
@@ -143,15 +143,15 @@ The app makes no network requests and includes no telemetry or automatic updater
 | Item | Location |
 | --- | --- |
 | App | `/Applications/轻退.app` or `~/Applications/轻退.app` |
-| Agent | `Contents/Library/LaunchServices/LiftAgent` inside the app |
-| Login service | `~/Library/LaunchAgents/local.suis.dmg-auto-eject.plist` |
+| Agent | `Contents/Library/LaunchServices/轻退` inside the app |
+| Login service | `Contents/Library/LaunchAgents/local.suis.lift.background.plist` inside the app |
 | State, records, icons and logs | `~/Library/Application Support/DMG Auto Eject/` |
 
-The legacy support folder and service identifier are retained for upgrade compatibility. `agent.log` keeps a current and a rotated file of about 1 MiB each. User runtime data is excluded from this repository.
+The legacy support folder is retained to preserve history. Apple’s `SMAppService` registers the in-bundle agent under the single app name `轻退` in background activity settings. Upgrades remove the old external login service. `agent.log` keeps a current and a rotated file of about 1 MiB each. User runtime data is excluded from this repository.
 
 ## FAQ
 
-**What is LiftAgent?** It is the background executable built from this project's Swift source. `Lift` is the UI process. Closing the window leaves `LiftAgent` running; the Auto Eject switch stops it.
+**What is the background process called?** Starting with 1.3.0, both the background process and the system background item use `轻退` (Lift), replacing the old `LiftAgent` name. The separate `轻退设置` UI executable exits when its window closes. The Auto Eject switch pauses the agent and login startup together.
 
 **Why is a disk still mounted?** Check that the agent is enabled, the app name and destination are supported, and verification has had time to complete. Running an app directly from the image or an app modifying its bundle can keep it mounted. Check `python3 manage.py status`, or eject manually.
 

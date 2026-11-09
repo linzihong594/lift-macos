@@ -11,59 +11,6 @@ func processMemory(_ pid: Int32) -> UInt64? {
     return result == 0 ? usage.ri_phys_footprint : nil
 }
 
-enum ServiceControl {
-    static var executable: URL { Bundle.main.bundleURL.appendingPathComponent("Contents/Library/LaunchServices/LiftAgent") }
-
-    static func running(_ state: LiftState?) -> Bool {
-        guard let state, state.pid > 1, kill(state.pid, 0) == 0 else { return false }
-        var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
-        let count = buffer.withUnsafeMutableBytes { proc_pidpath(state.pid, $0.baseAddress, UInt32($0.count)) }
-        return count > 0 && String(cString: buffer) == executable.path
-    }
-
-    @discardableResult static func launchctl(_ arguments: [String], required: Bool = true) throws -> String {
-        let process = Process()
-        let output = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = arguments
-        process.standardOutput = output; process.standardError = output
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        let text = String(decoding: data, as: UTF8.self)
-        if required && process.terminationStatus != 0 {
-            throw NSError(domain: "Lift", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: text])
-        }
-        return text
-    }
-
-    static func setEnabled(_ enabled: Bool) throws {
-        if !enabled {
-            try launchctl(["disable", LiftPaths.service])
-            try launchctl(["bootout", LiftPaths.service], required: false)
-            return
-        }
-        let fm = FileManager.default
-        try fm.createDirectory(at: LiftPaths.support, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        try fm.createDirectory(at: LiftPaths.launchAgent.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let config: [String: Any] = [
-            "Label": LiftPaths.label, "ProgramArguments": [executable.path],
-            "RunAtLoad": true, "KeepAlive": true, "ProcessType": "Background",
-            "LimitLoadToSessionType": "Aqua", "ThrottleInterval": 10,
-            "LowPriorityIO": true, "Nice": 10, "Umask": 0o077,
-            "AssociatedBundleIdentifiers": ["local.suis.lift"],
-            "StandardOutPath": LiftPaths.support.appendingPathComponent("launchd.log").path,
-            "StandardErrorPath": LiftPaths.support.appendingPathComponent("launchd.log").path,
-        ]
-        try PropertyListSerialization.data(fromPropertyList: config, format: .xml, options: 0).write(to: LiftPaths.launchAgent, options: .atomic)
-        try launchctl(["enable", LiftPaths.service])
-        if !running(LiftState.load(from: LiftPaths.support)) {
-            try launchctl(["bootout", LiftPaths.service], required: false)
-            try launchctl(["bootstrap", "gui/\(getuid())", LiftPaths.launchAgent.path])
-        }
-    }
-}
-
 @MainActor final class LiftModel: ObservableObject {
     @Published var state: LiftState?
     @Published var running = false
@@ -234,6 +181,9 @@ struct LiftView: View {
         .onReceive(timer) { _ in model.refresh() }
         .sheet(isPresented: $model.showingHelp) { help }
         .alert("未能更改自动弹出状态", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
+            if ServiceControl.requiresApproval {
+                Button("打开登录项设置") { ServiceControl.openSettings() }
+            }
             Button("好", role: .cancel) { model.error = nil }
         } message: { Text(model.error ?? "") }
     }
@@ -269,6 +219,24 @@ final class LiftAppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main struct LiftApp: App {
+    init() {
+        let arguments = CommandLine.arguments
+        if arguments.count == 3 && arguments[1] == "--background" {
+            do {
+                switch arguments[2] {
+                case "status": break
+                case "enable": try ServiceControl.setEnabled(true)
+                case "disable": try ServiceControl.setEnabled(false)
+                default: exit(2)
+                }
+                print(ServiceControl.statusName)
+                exit(0)
+            } catch {
+                fputs(error.localizedDescription + "\n", stderr)
+                exit(1)
+            }
+        }
+    }
     @NSApplicationDelegateAdaptor(LiftAppDelegate.self) private var delegate
     var body: some Scene {
         Window("轻退", id: "main") { LiftView() }

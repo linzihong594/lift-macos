@@ -84,7 +84,7 @@ python3 manage.py install
 python3 manage.py uninstall
 ```
 
-An upgrade backs up the previous app and login configuration under the local `build/upgrade-backup-*` directory, excluded from the repository.
+An upgrade saves the previous app and login configuration in a local `build/upgrade-backup-*.zip` archive, excluded from the repository. A successful install removes the build's app copy, leaving the installed app. The standalone `build` command retains its output for development.
 
 ## How it works
 

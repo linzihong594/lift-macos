@@ -124,6 +124,12 @@ def main():
                     raise RuntimeError(loaded.stdout.strip() or '启动轻退后台服务失败')
                 time.sleep(0.25)
         legacy.unlink(missing_ok=True)
+        # Keep rollback data without leaving another launchable/indexable app.
+        archive = backup.with_suffix('.zip')
+        subprocess.run(['/usr/bin/ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
+                        str(backup), str(archive)], check=True)
+        shutil.rmtree(backup)
+        shutil.rmtree(app)
         print('已安装：' + str(APP) + ('（保持暂停）' if was_paused else '（后台已启动）'))
     elif action == 'pause':
         launchctl('disable', SERVICE)

@@ -101,7 +101,7 @@ python3 manage.py install
 python3 manage.py uninstall
 ```
 
-升级前的程序和登录服务配置会备份到本地 `build/upgrade-backup-*`，该目录不进入仓库。
+升级前的程序和登录服务配置会保存为本地 `build/upgrade-backup-*.zip` 压缩包，该文件不进入仓库。安装成功后会清理构建目录中的应用副本，只保留安装位置的正式应用；单独运行 `build` 命令则保留构建产物供开发使用。
 
 ## 工作原理
 

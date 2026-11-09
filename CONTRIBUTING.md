@@ -33,6 +33,7 @@ xcrun swiftc Sources/GuardCore.swift Tests/GuardTests.swift -o build/guard-tests
 build/guard-tests
 xcrun swiftc Sources/LiftState.swift Tests/HistoryTests.swift -o build/history-tests
 build/history-tests
+python3 Tests/ManagerTests.py
 ```
 
 ### 集成与内存回归

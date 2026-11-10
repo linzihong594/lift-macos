@@ -14,7 +14,7 @@ A lightweight native macOS utility that ejects DMG installers after verifying yo
 
 [简体中文](README.md) · English
 
-[Install](#installation) · [Use](#usage) · [How it works](#how-it-works) · [FAQ](#faq) · [Contribute](CONTRIBUTING.md)
+[Download](https://github.com/linzihong594/lift-macos/releases/latest) · [Install](#installation) · [Use](#usage) · [How it works](#how-it-works) · [FAQ](#faq) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
@@ -38,7 +38,21 @@ Keep your usual workflow: open a DMG and drag the app into Applications. Lift ch
 
 ## Installation
 
-**Build from source.** No prebuilt release is available yet.
+### Download (recommended)
+
+Get **[Lift-1.4.0-universal.dmg](https://github.com/linzihong594/lift-macos/releases/download/v1.4.0/Lift-1.4.0-universal.dmg)** from [Releases](https://github.com/linzihong594/lift-macos/releases/latest). A [ZIP](https://github.com/linzihong594/lift-macos/releases/download/v1.4.0/Lift-1.4.0-universal.zip) and `SHA256SUMS.txt` are also available.
+
+1. Open the DMG and drag `轻退.app` into Applications.
+2. Open Lift from Applications and enable **自动弹出** (Auto Eject).
+3. If macOS requests background approval, allow Lift in Login Items settings.
+
+Requires **macOS 14+**. The universal build contains **arm64 and x86_64** and needs no Python, Xcode or compiler. Apple Silicon is tested; the Intel slice has build and structural checks but has not been tested on Intel hardware. The UI is in Simplified Chinese.
+
+The download is **ad-hoc signed and not Apple-notarized**. macOS may block first launch; verify the download source and follow [Apple’s instructions](https://support.apple.com/102445) for that app’s first-launch prompt in Privacy & Security.
+
+To update a downloaded copy, turn off Auto Eject and close the window before replacing the app, then reopen and enable it. To uninstall, turn off the switch first and move the app to Trash.
+
+### Build from source
 
 Requirements: macOS 14+, Xcode Command Line Tools (or Xcode with a compatible macOS SDK), and Python 3.9+. No third-party runtime dependencies are required. The build targets your current Mac's architecture; more hardware and OS combinations still need testing. Python and the compiler are not needed to run the installed app.
 
@@ -169,7 +183,7 @@ The legacy support folder is retained to preserve history. Apple’s `SMAppServi
 
 **Can Lift delete the downloaded DMG?** The current version retains the download and only ejects the mounted disk.
 
-**Is there a binary or Homebrew package?** No prebuilt release or Homebrew Cask is currently provided. Use the source installation above.
+**Is there a binary or Homebrew package?** [Releases](https://github.com/linzihong594/lift-macos/releases/latest) provides a universal DMG, ZIP and SHA-256 checksums. No Homebrew Cask is currently provided.
 
 ## Development
 

@@ -1,8 +1,10 @@
 # 更新记录 / Changelog
 
-这里记录已实现的版本变化。版本号对应应用源码；GitHub 尚未发布预编译 Release。
+这里记录已实现的版本变化。版本号对应应用源码；下载版见 [Releases](https://github.com/linzihong594/lift-macos/releases)。
 
 ## 1.4.0
+
+- 首次提供可直接下载安装的 Universal DMG、ZIP 与 SHA-256 校验文件，包含 arm64 和 x86_64。
 
 - 为后台补齐无界面应用包、图标资源和系统应用身份，活动监视器可显示轻退图标。
 - 保持单一系统后台项目，不加载 AppKit 或 SwiftUI。

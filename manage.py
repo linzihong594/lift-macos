@@ -10,6 +10,8 @@ import platform
 import re
 import time
 import uuid
+import hashlib
+import tempfile
 
 SOURCE = Path(__file__).resolve().parent
 SUPPORT = Path.home() / 'Library/Application Support/DMG Auto Eject'
@@ -36,10 +38,10 @@ def background(action):
     return result
 
 
-def build():
-    folder = SOURCE / 'build'
-    folder.mkdir(exist_ok=True)
-    target = f'{platform.machine()}-apple-macos14.0'
+def build(architecture=None, folder=None):
+    folder = folder or SOURCE / 'build'
+    folder.mkdir(parents=True, exist_ok=True)
+    target = f'{architecture or platform.machine()}-apple-macos14.0'
     def swift(files, output, extra=()):
         subprocess.run(['xcrun', 'swiftc', '-O', '-target', target,
                         *[str(SOURCE / f) for f in files], *extra, '-o', str(output)], check=True)
@@ -49,7 +51,9 @@ def build():
     swift(['Sources/GuardCore.swift', 'Sources/LiftState.swift', 'Sources/main.swift'], folder / AGENT_NAME,
           ['-import-objc-header', str(SOURCE / 'Sources/ProcessIdentity.h'), str(identity), '-framework', 'ApplicationServices'])
     swift(['Sources/LiftState.swift', 'App/ServiceControl.swift', 'App/LiftApp.swift'], folder / GUI_NAME)
-    swift(['App/DrawIcon.swift'], folder / 'draw-icon')
+    # The asset generator runs on the build host, including during cross builds.
+    subprocess.run(['xcrun', 'swiftc', '-O', str(SOURCE / 'App/DrawIcon.swift'),
+                    '-o', str(folder / 'draw-icon')], check=True)
     subprocess.run([str(folder / 'draw-icon'), str(folder / 'LiftIcon.png')], check=True)
     app = folder / '轻退.app'
     if app.exists():
@@ -58,6 +62,7 @@ def build():
     (contents / 'MacOS').mkdir(parents=True)
     resources = contents / 'Resources'
     resources.mkdir()
+    shutil.copy2(SOURCE / 'LICENSE', resources / 'LICENSE.txt')
     helper = contents / 'Library/LaunchServices/轻退.app'
     helpers = helper / 'Contents/MacOS'
     helpers.mkdir(parents=True)
@@ -109,12 +114,68 @@ def build():
     return app
 
 
+def package():
+    folder = SOURCE / 'build'
+    folder.mkdir(exist_ok=True)
+    destination = folder / 'releases'
+    destination.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='Lift-package-', dir=folder) as temporary:
+        staging = Path(temporary)
+        builds = {arch: build(arch, staging / arch) for arch in ['arm64', 'x86_64']}
+        image = staging / 'image'
+        image.mkdir()
+        app = image / '轻退.app'
+        shutil.copytree(builds['arm64'], app, symlinks=True)
+        helper = Path('Contents/Library/LaunchServices/轻退.app')
+        for relative in [Path('Contents/MacOS') / GUI_NAME, helper / 'Contents/MacOS' / AGENT_NAME]:
+            subprocess.run(['xcrun', 'lipo', '-create',
+                            *[str(builds[arch] / relative) for arch in builds],
+                            '-output', str(app / relative)], check=True)
+        subprocess.run(['/usr/bin/codesign', '--force', '--sign', '-', str(app / helper)], check=True)
+        subprocess.run(['/usr/bin/codesign', '--force', '--sign', '-', str(app)], check=True)
+        subprocess.run(['/usr/bin/codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+        version = plistlib.loads((app / 'Contents/Info.plist').read_bytes())['CFBundleShortVersionString']
+        name = 'Lift-' + version + '-universal'
+        (image / 'Applications').symlink_to('/Applications')
+        shutil.copy2(SOURCE / 'LICENSE', image / 'LICENSE.txt')
+        (image / '安装说明.txt').write_text(
+            '轻退 · Lift ' + version + '\n\n'
+            '适用于 macOS 14+，包含 Apple Silicon 和 Intel 两种架构。\n'
+            '1. 把“轻退.app”拖到“Applications（应用程序）”。\n'
+            '2. 从“应用程序”打开轻退，开启“自动弹出”。\n'
+            '3. 关闭管理窗口后后台继续运行；关闭主开关可持续停用。\n\n'
+            '此版本使用 ad-hoc 签名，尚未经过 Apple 公证。\n'
+            '若系统阻止打开，请核实下载来自本项目，再参考 Apple 官方说明：\n'
+            'https://support.apple.com/102445\n\n'
+            'Install: drag 轻退.app into Applications, open it, and enable Auto Eject.\n'
+            'Requires macOS 14+. Universal arm64 + x86_64; Intel hardware has not been tested.\n'
+            'Locally ad-hoc signed; not Apple-notarized. No Python or compiler is needed.\n\n'
+            'Project: https://github.com/linzihong594/lift-macos\n')
+        zip_file = staging / (name + '.zip')
+        dmg_file = staging / (name + '.dmg')
+        subprocess.run(['/usr/bin/ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
+                        str(app), str(zip_file)], check=True)
+        subprocess.run(['/usr/bin/hdiutil', 'create', '-srcfolder', str(image),
+                        '-volname', '轻退 ' + version, '-format', 'UDZO', str(dmg_file)], check=True)
+        sums = []
+        for artifact in [dmg_file, zip_file]:
+            digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+            output = destination / artifact.name
+            artifact.replace(output)
+            sums.append(digest + '  ' + output.name)
+        (destination / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+    print('已生成下载文件：' + str(destination))
+    return destination
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['build', 'install', 'pause', 'resume', 'status', 'uninstall'])
+    parser.add_argument('action', choices=['build', 'package', 'install', 'pause', 'resume', 'status', 'uninstall'])
     action = parser.parse_args().action
     if action == 'build':
         print(build())
+    elif action == 'package':
+        package()
     elif action == 'install':
         app = build()
         SUPPORT.mkdir(mode=0o700, parents=True, exist_ok=True)

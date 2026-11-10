@@ -55,6 +55,16 @@ python3 Tests/latency.py
 python3 Tests/performance.py --baseline /path/to/old/GuardCore.swift
 ```
 
+## 构建下载包 / Packaging
+
+```sh
+python3 manage.py package
+```
+
+该命令分别构建 arm64 和 x86_64，将应用及内嵌后台合并为 Universal 二进制，再生成 `build/releases/Lift-<版本>-universal.dmg`、对应 ZIP 和 `SHA256SUMS.txt`。临时应用包随任务结束清理，不安装或更改当前运行的轻退。编译工具来自 Xcode Command Line Tools。
+
+发布前核对两个可执行文件的架构、ZIP 解压及 DMG 挂载后的签名和图标资源。构建使用本地 ad-hoc 签名；发布说明应明确标注未经过 Apple 公证及实际测试过的硬件范围。将校验文件与 DMG、ZIP 一起上传到对应版本的 GitHub Release。
+
 ## 提交变更
 
 已安装并启动后台后，可对照状态输出中的 PID，检查系统是否识别其名称、无界面应用身份和图标。该检查只读取后台状态：

@@ -14,7 +14,7 @@
 
 简体中文 · [English](README.en.md)
 
-[安装](#安装) · [使用](#使用) · [工作原理](#工作原理) · [常见问题](#常见问题) · [参与贡献](CONTRIBUTING.md)
+[下载最新版](https://github.com/linzihong594/lift-macos/releases/latest) · [安装](#安装) · [使用](#使用) · [工作原理](#工作原理) · [常见问题](#常见问题) · [参与贡献](CONTRIBUTING.md)
 
 </div>
 
@@ -38,9 +38,23 @@
 
 ## 安装
 
-目前提供**源码构建安装**，尚未发布预编译安装包。
+### 下载安装（推荐）
 
-### 环境要求
+前往 [Releases](https://github.com/linzihong594/lift-macos/releases/latest)，下载 **[Lift-1.4.0-universal.dmg](https://github.com/linzihong594/lift-macos/releases/download/v1.4.0/Lift-1.4.0-universal.dmg)**；也提供 [ZIP](https://github.com/linzihong594/lift-macos/releases/download/v1.4.0/Lift-1.4.0-universal.zip) 和 `SHA256SUMS.txt`。
+
+1. 打开 DMG，把「轻退.app」拖到「Applications（应用程序）」。
+2. 从「应用程序」打开轻退，开启「自动弹出」。
+3. 如系统要求允许后台活动，在登录项设置中允许「轻退」。
+
+要求 **macOS 14+**。下载版包含 **Apple Silicon（arm64）和 Intel（x86_64）**，无需 Python、Xcode 或编译器。Apple Silicon 已实测，Intel 完成构建和结构校验，尚未实机验证。界面目前为简体中文。
+
+下载版使用 **ad-hoc 签名，尚未经过 Apple 公证**。macOS 可能拦截首次启动；核实下载来源后，按 [Apple 官方说明](https://support.apple.com/102445) 在「隐私与安全」中处理该应用的首次打开提示。
+
+使用下载版升级时，先关闭「自动弹出」并关闭管理窗口，用新版替换应用，再打开并恢复开关。卸载时先关闭主开关，再把应用移到废纸篓。
+
+### 从源码构建
+
+#### 环境要求
 
 | 项目 | 要求 |
 | --- | --- |
@@ -198,7 +212,7 @@ python3 Tests/performance.py
 
 ### 是否有下载版或 Homebrew 安装？
 
-目前尚未提供预编译 Release 或 Homebrew Cask，请使用上述源码安装方式。应用界面目前为简体中文。
+已提供 [Releases 下载版](https://github.com/linzihong594/lift-macos/releases/latest)，包含 DMG、ZIP 和 SHA-256 校验值。暂未提供 Homebrew Cask。
 
 ## 开发与贡献
 

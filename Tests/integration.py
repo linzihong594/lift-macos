@@ -180,6 +180,26 @@ try:
     wait_for(lambda: not mounted(image), 'released disk was not retried')
     passed('open files prevent normal eject; releasing them allows automatic retry')
 
+    image, mount, source, target = fixture('Changed After Verify')
+    wait_for(lambda: 'WATCH Changed After Verify.app' in log(), 'late-change image not observed')
+    holder = subprocess.Popen([sys.executable, '-c',
+                               'import sys,time; f=open(sys.argv[1],"rb"); print("ready",flush=True); time.sleep(60)',
+                               str(source / 'Contents/Resources/payload')], stdout=subprocess.PIPE)
+    assert holder.stdout.readline().strip() == b'ready'
+    try:
+        shutil.copytree(source, target, symlinks=True)
+        wait_for(lambda: 'VERIFIED ' + str(target) in log(), 'late-change copy did not verify')
+        late_payload = target / 'Contents/Resources/payload'
+        late_original = (source / 'Contents/Resources/payload').read_bytes()
+        late_payload.write_bytes(b'X' * len(late_original))
+    finally:
+        holder.terminate()
+        holder.wait(timeout=5)
+    check_stays(image, 3)
+    shutil.copy2(source / 'Contents/Resources/payload', late_payload)
+    wait_for(lambda: not mounted(image), 'corrected late-change copy did not eject')
+    passed('a same-size rewrite after verification invalidates completion before eject')
+
     for name, options in [('Package Installer', {'package': True}),
                           ('Writable Data', {'writable': True}),
                           ('ISO Image', {'extension': 'iso'})]:

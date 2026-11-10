@@ -42,9 +42,12 @@ python3 Tests/ManagerTests.py
 python3 manage.py build
 python3 Tests/integration.py
 python3 Tests/performance.py
+python3 Tests/latency.py
 ```
 
 集成测试创建并挂载自己的临时 DMG，在 `/private/tmp` 下使用隔离的应用目录和测试后台，不操作真实已安装应用或其他磁盘。结果保存在 `build/last-integration.log`。
+
+`Tests/latency.py` 使用临时 DMG 测量复制完成到正常弹出的耗时，结果写入 `build/latency.json`；可使用 `--baseline /path/to/previous-agent` 对比旧版独立可执行文件。
 
 性能测试连续核对三次包含 64 MiB 大文件和 2,000 个小文件的模拟应用，输出 `build/performance.json`。如需比较历史实现：
 
@@ -53,6 +56,13 @@ python3 Tests/performance.py --baseline /path/to/old/GuardCore.swift
 ```
 
 ## 提交变更
+
+已安装并启动后台后，可对照状态输出中的 PID，检查系统是否识别其名称、无界面应用身份和图标。该检查只读取后台状态：
+
+```sh
+xcrun swiftc -parse-as-library Tests/IdentityTests.swift -o build/identity-tests
+build/identity-tests <后台PID>
+```
 
 - 让每次变更解决一个明确问题，并说明触发条件和最终行为。
 - 修改复制判断或弹出逻辑时，验证未开始复制、慢速复制、取消复制、同版本已安装和磁盘被占用等情况。

@@ -3,7 +3,7 @@ import ServiceManagement
 import Darwin
 
 enum ServiceControl {
-    static var executable: URL { Bundle.main.bundleURL.appendingPathComponent("Contents/Library/LaunchServices/轻退") }
+    static var executable: URL { Bundle.main.bundleURL.appendingPathComponent("Contents/Library/LaunchServices/轻退.app/Contents/MacOS/轻退") }
     static var service: SMAppService { .agent(plistName: LiftPaths.agentPlistName) }
     static var requiresApproval: Bool { service.status == .requiresApproval }
     static var statusName: String {

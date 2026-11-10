@@ -40,10 +40,14 @@ def build():
     folder = SOURCE / 'build'
     folder.mkdir(exist_ok=True)
     target = f'{platform.machine()}-apple-macos14.0'
-    def swift(files, output):
+    def swift(files, output, extra=()):
         subprocess.run(['xcrun', 'swiftc', '-O', '-target', target,
-                        *[str(SOURCE / f) for f in files], '-o', str(output)], check=True)
-    swift(['Sources/GuardCore.swift', 'Sources/LiftState.swift', 'Sources/main.swift'], folder / AGENT_NAME)
+                        *[str(SOURCE / f) for f in files], *extra, '-o', str(output)], check=True)
+    identity = folder / 'process-identity.o'
+    subprocess.run(['xcrun', 'clang', '-Os', '-target', target, '-c',
+                    str(SOURCE / 'Sources/ProcessIdentity.c'), '-o', str(identity)], check=True)
+    swift(['Sources/GuardCore.swift', 'Sources/LiftState.swift', 'Sources/main.swift'], folder / AGENT_NAME,
+          ['-import-objc-header', str(SOURCE / 'Sources/ProcessIdentity.h'), str(identity), '-framework', 'ApplicationServices'])
     swift(['Sources/LiftState.swift', 'App/ServiceControl.swift', 'App/LiftApp.swift'], folder / GUI_NAME)
     swift(['App/DrawIcon.swift'], folder / 'draw-icon')
     subprocess.run([str(folder / 'draw-icon'), str(folder / 'LiftIcon.png')], check=True)
@@ -54,7 +58,8 @@ def build():
     (contents / 'MacOS').mkdir(parents=True)
     resources = contents / 'Resources'
     resources.mkdir()
-    helpers = contents / 'Library/LaunchServices'
+    helper = contents / 'Library/LaunchServices/轻退.app'
+    helpers = helper / 'Contents/MacOS'
     helpers.mkdir(parents=True)
     shutil.copy2(folder / GUI_NAME, contents / 'MacOS' / GUI_NAME)
     shutil.copy2(folder / AGENT_NAME, helpers / AGENT_NAME)
@@ -72,23 +77,33 @@ def build():
     info = {
         'CFBundleName': '轻退', 'CFBundleDisplayName': '轻退', 'CFBundleExecutable': GUI_NAME,
         'CFBundleIdentifier': 'local.suis.lift', 'CFBundlePackageType': 'APPL',
-        'CFBundleIconFile': 'AppIcon', 'CFBundleShortVersionString': '1.3.0', 'CFBundleVersion': '4',
+        'CFBundleIconFile': 'AppIcon', 'CFBundleShortVersionString': '1.4.0', 'CFBundleVersion': '5',
         'CFBundleDevelopmentRegion': 'zh_CN', 'LSMinimumSystemVersion': '14.0',
         'NSPrincipalClass': 'NSApplication', 'NSHighResolutionCapable': True,
         'NSHumanReadableCopyright': '轻退 · Lift — 本地自动弹出工具',
     }
     (contents / 'Info.plist').write_bytes(plistlib.dumps(info))
+    helper_info = {
+        'CFBundleName': '轻退', 'CFBundleDisplayName': '轻退', 'CFBundleExecutable': AGENT_NAME,
+        'CFBundleIdentifier': LABEL, 'CFBundlePackageType': 'APPL',
+        'CFBundleIconFile': 'AppIcon', 'CFBundleShortVersionString': '1.4.0', 'CFBundleVersion': '5',
+        'LSMinimumSystemVersion': '14.0', 'LSBackgroundOnly': True,
+    }
+    (helper / 'Contents/Info.plist').write_bytes(plistlib.dumps(helper_info))
+    helper_resources = helper / 'Contents/Resources'
+    helper_resources.mkdir()
+    shutil.copy2(resources / 'AppIcon.icns', helper_resources / 'AppIcon.icns')
+    subprocess.run(['/usr/bin/codesign', '--force', '--sign', '-', str(helper)], check=True)
     agents = contents / 'Library/LaunchAgents'
     agents.mkdir()
     settings = {
-        'Label': LABEL, 'BundleProgram': 'Contents/Library/LaunchServices/' + AGENT_NAME,
+        'Label': LABEL, 'BundleProgram': 'Contents/Library/LaunchServices/轻退.app/Contents/MacOS/' + AGENT_NAME,
         'ProgramArguments': [AGENT_NAME],
         'RunAtLoad': True, 'KeepAlive': True, 'ProcessType': 'Background',
         'LimitLoadToSessionType': 'Aqua', 'ThrottleInterval': 10,
         'LowPriorityIO': True, 'Nice': 10, 'Umask': 0o077,
     }
     (agents / (LABEL + '.plist')).write_bytes(plistlib.dumps(settings))
-    subprocess.run(['/usr/bin/codesign', '--force', '--sign', '-', '--identifier', LABEL, str(helpers / AGENT_NAME)], check=True)
     subprocess.run(['/usr/bin/codesign', '--force', '--sign', '-', str(app)], check=True)
     subprocess.run(['/usr/bin/codesign', '--verify', '--deep', '--strict', str(app)], check=True)
     return app

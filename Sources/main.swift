@@ -71,8 +71,8 @@ final class Agent {
 
     init(roots: [URL], logger: Logger, testRoot: String?) {
         self.roots = roots; self.logger = logger; self.testRoot = testRoot
-        quiet = 1
-        settle = 0.25
+        quiet = 0.35
+        settle = 0.15
         retry = 2
         (totalCompleted, recentCompletions) = LiftState.previousCompletions(in: logger.url.deletingLastPathComponent())
         let directory = logger.url.deletingLastPathComponent()
@@ -161,7 +161,7 @@ final class Agent {
         }
         let watched = roots.filter { FileManager.default.fileExists(atPath: $0.path) }.map(\.path)
         stream = FSEventStreamCreate(nil, callback, &context, watched as CFArray,
-                                    FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.2,
+                                    FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.1,
                                     FSEventStreamCreateFlags(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagWatchRoot))
         guard let stream else { logger.write("ERROR cannot create file event stream"); exit(1) }
         FSEventStreamSetDispatchQueue(stream, queue)
@@ -200,7 +200,7 @@ final class Agent {
         idleDeadline = Date().addingTimeInterval(60)
         guard timer == nil else { return }
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 0.1, repeating: 0.5, leeway: .milliseconds(50))
+        timer.schedule(deadline: .now() + 0.05, repeating: 0.2, leeway: .milliseconds(20))
         timer.setEventHandler { [weak self] in self?.performWork { self?.tick() } }
         self.timer = timer
         timer.resume()
@@ -317,6 +317,13 @@ guard lock >= 0, flock(lock, LOCK_EX | LOCK_NB) == 0 else { exit(0) }
 let roots = testRoot.map { [URL(fileURLWithPath: $0).appendingPathComponent("Applications")] } ??
     [URL(fileURLWithPath: "/Applications"), fm.homeDirectoryForCurrentUser.appendingPathComponent("Applications")]
 let logger = Logger(support.appendingPathComponent("agent.log"))
+if testRoot == nil && Bundle.main.bundleIdentifier == LiftPaths.label {
+    autoreleasepool {
+        let result = LiftRegisterBackgroundIdentity()
+        if result != 0 { logger.write("WARN background application identity: \(result)") }
+    }
+    _ = malloc_zone_pressure_relief(nil, 0)
+}
 logger.write("START watching normal drag-to-install DMGs; no force eject, no installer deletion")
 let agent = Agent(roots: roots, logger: logger, testRoot: testRoot)
 agent.start()

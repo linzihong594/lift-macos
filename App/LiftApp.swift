@@ -202,7 +202,7 @@ struct LiftView: View {
     var help: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("让安装，轻轻收尾。").font(.system(size: 23, weight: .semibold))
-            Text("照常打开 DMG，把应用拖到“应用程序”。轻退会核对文件是否完整，通常在复制结束后约 2–5 秒弹出安装盘。大型应用还需要额外的核对时间。")
+            Text("照常打开 DMG，把应用拖到“应用程序”。轻退确认复制完整并检查文件状态稳定后，会自动弹出安装盘。大型应用还需要额外的核对时间。")
             Label("仅自动处理普通的单应用、只读 DMG。", systemImage: "app.badge.checkmark")
             Label("安装器、多应用或无法确认完成的情况，请手动弹出。", systemImage: "hand.raised")
             Label("不删除安装包，不强制弹出，也不结束其他进程。", systemImage: "checkmark.shield")

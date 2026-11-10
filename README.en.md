@@ -30,7 +30,7 @@ Keep your usual workflow: open a DMG and drag the app into Applications. Lift ch
 
 - **A familiar workflow.** No separate drop target or command-line installer.
 - **Verification before ejection.** Checks the directory structure, every file's contents, executable permissions and symlinks, followed by a final stability check.
-- **Prompt cleanup.** Typical apps eject about **2–5 seconds after copying finishes**; larger apps need additional verification time.
+- **Prompt cleanup.** The same local test fixture improved from a median of **2.68 to 1.09 seconds** after copying; actual time depends on app size, file count and disk usage.
 - **A small background service.** Native disk and file events, suspended periodic checks after inactivity, and no UI framework in the agent.
 - **A native window.** SwiftUI, system materials, light and dark appearance, background memory, pending disks and four recent completions.
 - **Real app icons.** Saves icon resources for recent entries; images are decoded only in the UI.
@@ -94,7 +94,7 @@ Before ejecting, it:
 
 1. Reads actual mount points and device identities from macOS instead of guessing from DMG filenames. Only read-only, unencrypted, single-volume DMGs containing one root-level app and no package installer are eligible.
 2. Records the destination's initial state and requires evidence that the app was added or replaced. Opening an installer for an already-installed identical version does not by itself trigger ejection.
-3. Waits for roughly one second without relevant file changes, compares the whole directory, file contents, executable permissions and symlinks, then checks stability again.
+3. Waits for roughly 0.35 seconds without relevant file changes, compares the whole directory, file contents, executable permissions and symlinks, then checks stability again.
 4. Rechecks the disk identity and calls normal `diskutil eject`. A busy disk stays mounted and is retried about every two seconds.
 
 Lift does not force-eject disks, terminate other processes, delete DMGs or run installers. Copy verification **does not establish that an app is trustworthy** and does not replace macOS security checks.
@@ -114,6 +114,16 @@ Lift does not force-eject disks, terminate other processes, delete DMGs or run i
 This is conservative detection for common drag-to-install apps, not a universal installer completion detector.
 
 ## Performance
+
+Version 1.4.0 shortens chained waits while retaining full byte comparison, final file-state checks and normal ejection. With the same **32 MiB file plus 250 small files**, measured three times per version, median copy-to-eject time improved from **2.679 seconds** in 1.3.0 to **1.091 seconds**, about **59% less waiting**. See the [saved timing data](docs/latency-baseline.json). This is not a timing guarantee for every installer; large apps and busy disks still need more time.
+
+```sh
+python3 Tests/latency.py
+# Optional comparison with an archived standalone agent:
+python3 Tests/latency.py --baseline /path/to/previous-agent
+```
+
+The background icon comes from its bundled resources and registered application identity. The agent does not load AppKit or SwiftUI, and the management window does not stay running. Identity registration has a small system-connection cost; the 1.4.0 agent measured around 5–6 MiB locally, varying with workload.
 
 The UI and the background agent named `轻退` (Lift) run as separate processes. The window's memory figure covers only the background agent, excluding the UI and system file cache.
 
@@ -143,7 +153,7 @@ The app makes no network requests and includes no telemetry or automatic updater
 | Item | Location |
 | --- | --- |
 | App | `/Applications/轻退.app` or `~/Applications/轻退.app` |
-| Agent | `Contents/Library/LaunchServices/轻退` inside the app |
+| Agent | `Contents/Library/LaunchServices/轻退.app/Contents/MacOS/轻退` inside the app |
 | Login service | `Contents/Library/LaunchAgents/local.suis.lift.background.plist` inside the app |
 | State, records, icons and logs | `~/Library/Application Support/DMG Auto Eject/` |
 
@@ -151,7 +161,7 @@ The legacy support folder is retained to preserve history. Apple’s `SMAppServi
 
 ## FAQ
 
-**What is the background process called?** Starting with 1.3.0, both the background process and the system background item use `轻退` (Lift), replacing the old `LiftAgent` name. The separate `轻退设置` UI executable exits when its window closes. The Auto Eject switch pauses the agent and login startup together.
+**What is the background process called?** Starting with 1.3.0, both the background process and the system background item use `轻退` (Lift), replacing the old `LiftAgent` name. Version 1.4.0 adds a faceless app identity and icon resources for Activity Monitor and tools that recognize application identities, while retaining one system background item. The separate `轻退设置` UI executable exits when its window closes. The Auto Eject switch pauses the agent and login startup together.
 
 **Why is a disk still mounted?** Check that the agent is enabled, the app name and destination are supported, and verification has had time to complete. Running an app directly from the image or an app modifying its bundle can keep it mounted. Check `python3 manage.py status`, or eject manually.
 
